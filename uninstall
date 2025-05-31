@@ -1,0 +1,170 @@
+#!/bin/bash
+
+# nodeman - Node Version Manager - desinstalador
+
+# Autor: Leonardo Bruno
+# Contato: souzalb@proton.me
+# Versão: 1.0
+# Data: 30/05/2025
+
+# Nome do arquivo alvo
+TARGET="nodeman"
+
+# Pasta raiz nodeman
+DIR_NODEMAN="$HOME/.nodeman"
+
+# Pasta raiz versões node
+DIR_NODE_VERSIONS="$DIR_NODEMAN/node_versions"
+
+# Arquivo .bashrc
+FILE_BASHRC="$HOME/.bashrc"
+
+# Arquivo de ambiente node
+NODE_ENV_FILE="$DIR_NODEMAN/node_env"
+
+# Mensagem inicial
+echo ""
+echo "--------------------------------------------"
+echo "     Desinstalação $TARGET versão 1.0       "
+echo "--------------------------------------------"
+echo ""
+echo "1 - Verificar instalação"
+echo "2 - Remover entradas do bashrc"
+echo "3 - Remover arquivos principais"
+echo "4 - Remover versões node (Opcional)"
+echo "5 - Finalizar desinstalação"
+echo ""
+
+# Verifica se instalação existe
+check_nodeman_exists() {
+    if [ ! -d "$DIR_NODEMAN" ]; then
+        echo "Erro: O nodeman não está instalado."
+        echo "Pasta não encontrada: $DIR_NODEMAN"
+        echo ""
+        echo "Nenhuma ação será realizada."
+        exit 0
+    fi
+    echo "Instalação localizada: $DIR_NODEMAN"
+    return 0
+}
+
+# Confirmação do usuário
+confirm_uninstall() {
+    read -p "Deseja realmente desinstalar o $TARGET? [s/N]: " confirm < /dev/tty
+    if [[ ! "$confirm" =~ ^[Ss]$ ]]; then
+        echo ""
+        echo "Desinstalação cancelada pelo usuário."
+        echo "Nenhuma alteração foi realizada."
+        exit 0
+    fi
+}
+
+# Função para calcular tamanho da pasta
+get_folder_size() {
+    if [ -d "${1:-}" ]; then
+        du -sh "$1" | cut -f1
+    else
+        echo "0K"
+    fi
+}
+
+# Remove configurações do bashrc
+remove_bashrc_entries() {
+    echo "Removendo configurações do .bashrc..."
+    local marker="# nodeman auto config"
+    
+    if grep -q "$marker" "$FILE_BASHRC"; then
+        # Cria backup antes de modificar
+        cp "$FILE_BASHRC" "${FILE_BASHRC}.backup-nodeman"
+        
+        # Remove as linhas relacionadas ao nodeman
+        sed -i "/$marker/d" "$FILE_BASHRC"
+        sed -i '/export PATH="$PATH:$HOME\/.nodeman"/d' "$FILE_BASHRC"
+        sed -i '/if \[ -f "$HOME\/.nodeman\/node_env" \]; then/,/fi/d' "$FILE_BASHRC"
+        
+        echo "Configurações removidas do .bashrc!"
+        echo "Backup salvo em: ${FILE_BASHRC}.backup-nodeman"
+    else
+        echo "Nenhuma configuração do nodeman encontrada no .bashrc"
+    fi
+    return 0
+}
+
+# Remove arquivos principais
+remove_main_files() {
+    echo "Removendo arquivos principais..."
+    
+    if [ -f "$DIR_NODEMAN/$TARGET" ]; then
+        rm -f "$DIR_NODEMAN/$TARGET"
+        echo "Removido: $DIR_NODEMAN/$TARGET"
+    else
+        echo "Arquivo não encontrado: $DIR_NODEMAN/$TARGET"
+    fi
+
+    if [ -f "$NODE_ENV_FILE" ]; then
+        rm -f "$NODE_ENV_FILE"
+        echo "Arquivo removido: $NODE_ENV_FILE"
+    else
+        echo "Arquivo não encontrado: $NODE_ENV_FILE"
+    fi
+    return 0
+}
+
+# Remove versões do Node (opcional)
+remove_node_versions() {
+    echo "Verificando versões do Node..."
+    
+    if [ -d "$DIR_NODE_VERSIONS" ]; then
+        folder_size=$(get_folder_size "$DIR_NODE_VERSIONS")
+        echo "Tamanho da pasta de versões: $folder_size"
+        echo "Atenção! Esta operação é irreversível!"
+        
+        read -p "Deseja remover todas as versões do node? [s/N]: " confirm_versions < /dev/tty
+        if [[ "$confirm_versions" =~ ^[Ss]$ ]]; then
+            read -p "Confirme digitando 'remover': " double_confirm < /dev/tty
+            if [ "$double_confirm" == "remover" ]; then
+                echo "Removendo todas as versões node..."
+                rm -rf "$DIR_NODE_VERSIONS"
+                echo "Pasta de versões removida: $DIR_NODE_VERSIONS"
+                
+                # Remove pasta principal se estiver vazia
+                if [ -d "$DIR_NODEMAN" ] && [ -z "$(ls -A "$DIR_NODEMAN")" ]; then
+                    rm -rf "$DIR_NODEMAN"
+                    echo "Pasta principal removida: $DIR_NODEMAN"
+                fi
+            else
+                echo "Confirmação inválida. As versões do node não foram removidas."
+            fi
+        else
+            echo "Pasta de versões mantida: $DIR_NODE_VERSIONS"
+        fi
+    else
+        echo "Pasta de versões não encontrada: $DIR_NODE_VERSIONS"
+    fi
+    return 0
+}
+
+# Função principal
+main() {
+    check_nodeman_exists
+    confirm_uninstall
+    remove_bashrc_entries
+    remove_main_files
+    remove_node_versions
+
+    echo ""
+    echo "--------------------------------------------"
+    echo "   Desinstalação concluída com sucesso !    "
+    echo "--------------------------------------------"
+    echo ""
+    echo "Recomendações:"
+    echo "1. Recarregue seu terminal com:"
+    echo "   source ~/.bashrc"
+    echo "2. Verifique se todas as entradas foram removidas"
+    echo ""
+    echo "Obrigado por utilizar o $TARGET!"
+    echo "Suporte: souzalb@proton.me"
+}
+
+# Executa desinstalação
+main
