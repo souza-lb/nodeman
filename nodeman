@@ -115,7 +115,7 @@ use_version(){
         echo 'export PATH="$NODE_HOME/bin:$PATH"' >> "$FILE_ENV_NODE"
     fi
     
-    echo "Versão $version defininida como padrão!"
+    echo "Versão $version definida como padrão!"
     echo "Execute 'source ~/.bashrc' para aplicar as mudanças!"
     return 0
 }
