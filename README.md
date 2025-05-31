@@ -59,10 +59,10 @@ nodeman install [URL/arquivo]
 **Exemplos:**
 ```bash
 # Instalar via URL oficial
-nodeman install https://nodejs.org/dist/v20.12.1/node-v20.12.1-linux-x64.tar.xz
+nodeman install https://nodejs.org/dist/v22.16.0/node-v22.16.0-linux-x64.tar.xz
 
 # Instalar arquivo local
-nodeman install ~/Downloads/node-v20.12.1-linux-x64.tar.xz
+nodeman install ~/Downloads/node-v22.16.0-linux-x64.tar.xz
 ```
 
 ### ⚡ Ativar uma versão
