@@ -77,7 +77,7 @@ nodeman use 20.12.1
 
 Saída:
 ```
-Versão 20.12.1 defininida como padrão!
+Versão 20.12.1 definida como padrão!
 Execute 'source ~/.bashrc' para aplicar as mudanças!
 ```
 
