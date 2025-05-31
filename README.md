@@ -1,6 +1,6 @@
 # NODEMAN - Node Version Manager
 
-**Gerencie múltiplas versões do Node.js no Debian/Ubuntu**  
+**Gerencie múltiplas versões do Node.js no Debian/AlmaLinux**  
 Uma ferramenta simples para instalar, alternar e remover versões do Node.js sem conflitos.
 
 ## 🎯 Objetivo
@@ -48,7 +48,7 @@ Exemplo de saída:
 Versões Node disponíveis:
     18.12.1
 --> 20.12.1
-    22.14.0
+    22.16.0
 ```
 
 ### ⬇️ Instalar uma versão
@@ -72,12 +72,12 @@ nodeman use [versão]
 
 **Exemplo:**
 ```bash
-nodeman use 20.12.1
+nodeman use 22.16.0
 ```
 
 Saída:
 ```
-Versão 20.12.1 definida como padrão!
+Versão 22.16.0 definida como padrão!
 Execute 'source ~/.bashrc' para aplicar as mudanças!
 ```
 
@@ -88,7 +88,7 @@ nodeman disable
 
 Saída:
 ```
-Versão 20.12.1 desativada com sucesso!
+Versão 22.16.0 desativada com sucesso!
 Execute 'source ~/.bashrc' para aplicar as alterações!
 ```
 
