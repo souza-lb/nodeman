@@ -16,6 +16,9 @@ DIR_NODEMAN="$HOME/.nodeman"
 # Pasta raiz versões node
 DIR_NODE_VERSIONS="$DIR_NODEMAN/node_versions"
 
+# Link para versão em uso node
+CURRENT_NODE="$DIR_NODE_VERSIONS/current"
+
 # Arquivo .bashrc
 FILE_BASHRC="$HOME/.bashrc"
 
@@ -99,6 +102,11 @@ remove_main_files() {
         echo "Removido: $DIR_NODEMAN/$TARGET"
     else
         echo "Arquivo não encontrado: $DIR_NODEMAN/$TARGET"
+    fi
+
+    if [ -L "$CURRENT_NODE" ]; then
+        rm -f "$CURRENT_NODE"
+        echo "Removido: $CURRENT_NODE"
     fi
 
     if [ -f "$NODE_ENV_FILE" ]; then
