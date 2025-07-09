@@ -5,7 +5,7 @@
 # Autor: Leonardo Bruno
 # Contato: souzalb@proton.me
 # Versão: 1.0
-# Data: 30/05/2025
+# Data: 08/07/2025
 
 # Nome do arquivo alvo
 TARGET="nodeman"
@@ -24,6 +24,9 @@ FILE_BASHRC="$HOME/.bashrc"
 
 # Arquivo de ambiente node
 NODE_ENV_FILE="$DIR_NODEMAN/node_env"
+
+# Arquivo de repositório
+FILE_LINK_NODE="$DIR_NODEMAN/link-node.txt"
 
 # Mensagem inicial
 echo ""
@@ -102,6 +105,13 @@ remove_main_files() {
         echo "Removido: $DIR_NODEMAN/$TARGET"
     else
         echo "Arquivo não encontrado: $DIR_NODEMAN/$TARGET"
+    fi
+
+    if [ -f "$FILE_LINK_NODE" ]; then
+        rm -f "$FILE_LINK_NODE"
+        echo "Removido: $FILE_LINK_NODE"
+    else
+        echo "Arquivo não encontrado: $FILE_LINK_NODE"
     fi
 
     if [ -L "$CURRENT_NODE" ]; then
