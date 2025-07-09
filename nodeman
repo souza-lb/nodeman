@@ -5,7 +5,7 @@
 # Autor: Leonardo Bruno
 # Contato: souzalb@proton.me
 # Versão: 1.0
-# Data: 30/05/2025
+# Data: 08/07/2025
 
 # Pasta raiz nodeman
 DIR_NODEMAN="$HOME/.nodeman"
@@ -19,6 +19,37 @@ CURRENT_NODE="$DIR_NODE_VERSIONS/current"
 # Arquivo configuração de ambiente
 FILE_ENV_NODE="$DIR_NODEMAN/node_env"
 
+# Arquivo de repositório com links
+FILE_LINK_NODE="$DIR_NODEMAN/link-node.txt"
+
+# Arquivo de lock para controle de concorrência
+LOCK_FILE="/tmp/nodeman.lock"
+
+# Verifica e cria lock para operações críticas
+check_lock(){
+    if [ -f "$LOCK_FILE" ]; then
+        local pid
+        pid=$(cat "$LOCK_FILE" 2>/dev/null)
+        
+        if ps -p "$pid" > /dev/null 2>&1; then
+            echo "Erro: Operação já em progresso (PID $pid)."
+            return 1
+        else
+            # Remove lock de processo inexistente
+            rm -f "$LOCK_FILE"
+        fi
+    fi
+    
+    # Cria novo lock
+    echo $$ > "$LOCK_FILE"
+    return 0
+}
+
+# Remove arquivo de lock
+release_lock(){
+    rm -f "$LOCK_FILE"
+}
+
 # Exibe ajuda
 show_help(){
     echo "Uso: nodeman [comando]"
@@ -30,6 +61,9 @@ show_help(){
     echo "list                  - Lista versões disponíveis"
     echo "use     [versão]      - Define uma versão padrão"
     echo "disable               - Desativa versão padrão"
+    echo "repo update           - Atualiza lista de links"
+    echo "repo list             - Lista versões disponíveis no repositório"
+    echo "repo [versão]         - Instala versão específica do repositório"
     echo "help                  - Exibe ajuda"
     return 0
 }
@@ -83,6 +117,97 @@ list_versions(){
         fi
     done <<< "$versions"
     return 0
+}
+
+# Atualiza arquivo de links do repositório
+repo_update(){
+    if ! check_lock; then
+        return 1
+    fi
+
+    echo "Atualizando lista de links..."
+    # Executa o comando dentro do diretório nodeman
+    cd "$DIR_NODEMAN" || {
+        echo "Erro: Não foi possível acessar o diretório $DIR_NODEMAN"
+        release_lock
+        return 1
+    }
+    wget -qO- https://raw.githubusercontent.com/souza-lb/node-link-harvester/main/get-link-node | bash
+    
+    if [ $? -eq 0 ] && [ -f "$FILE_LINK_NODE" ]; then
+        echo "Repositório atualizado com sucesso!"
+        release_lock
+        return 0
+    else
+        echo "Erro: Falha ao atualizar repositório!"
+        release_lock
+        return 1
+    fi
+}
+
+# Lista versões disponíveis no repositório em formato de tabela
+repo_list(){
+    if [ ! -f "$FILE_LINK_NODE" ]; then
+        echo "Repositório não encontrado!"
+        echo "Execute 'nodeman repo update' primeiro."
+        return 1
+    fi
+
+    echo "Versões disponíveis no repositório:"
+    echo "----------------------------------"
+    printf "%-13s | %s\n" "Versão" "Link"
+    echo "----------------------------------"
+
+    while IFS= read -r line; do
+        # Extrai versão do formato: node-vX.Y.Z-linux
+        if [[ "$line" =~ node-v([0-9]+\.[0-9]+\.[0-9]+)-linux ]]; then
+            version="${BASH_REMATCH[1]}"
+            printf "%-12s | %s\n" "$version" "$line"
+        fi
+    done < "$FILE_LINK_NODE"
+    return 0
+}
+
+# Instala versão específica do repositório
+repo_install(){
+    local version="${1:-}"
+    
+    if [ -z "$version" ]; then
+        echo "Erro: Versão não informada!"
+        show_help
+        return 1
+    fi
+    
+    # Valida formato da versão
+    if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "Erro: Formato de versão inválido! Use X.Y.Z"
+        return 1
+    fi
+    
+    # Verifica se já está instalada
+    if [ "$(version_exists "$version")" = "yes" ]; then
+        echo "Erro: Versão $version já está instalada!"
+        return 1
+    fi
+    
+    # Verifica se arquivo de repositório existe
+    if [ ! -f "$FILE_LINK_NODE" ]; then
+        echo "Repositório não encontrado!"
+        echo "Execute 'nodeman repo update' primeiro."
+        return 1
+    fi
+    
+    # Busca link correspondente à versão
+    local link
+    link=$(grep "node-v$version-linux" "$FILE_LINK_NODE" | head -n1)
+    
+    if [ -z "$link" ]; then
+        echo "Erro: Versão $version não encontrada no repositório!"
+        return 1
+    fi
+    
+    echo "Instalando versão $version do repositório..."
+    install_version "$link"
 }
 
 # Ativa uma versão
@@ -141,10 +266,15 @@ disable_version(){
 install_version(){
     local source file_name temp_dir temp_file version
     
+    if ! check_lock; then
+        return 1
+    fi
+    
     source=${1:-}
     
     if [ -z "$source" ]; then
         echo "Erro: [url/arquivo] não fornecido!"
+        release_lock
         return 1
     fi
     
@@ -159,16 +289,19 @@ install_version(){
     
     if [ -z "$version" ]; then
         echo "Erro: Versão necessária!"
+        release_lock
         return 1
     fi
 
     if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo "Erro: Formato inválido! Use X.Y.Z"
+        release_lock
         return 1
     fi
     
     if [ "$(version_exists "$version")" = "yes" ]; then
         echo "Erro: A versão '$version' já está instalada!"
+        release_lock
         return 1
     fi
     
@@ -179,6 +312,8 @@ install_version(){
         echo "Efetuando o download via url..."
         if ! wget -q --show-progress "$source" -O "$temp_dir/$temp_file"; then
             echo "Erro: Falha no download!"
+            rm -rf "$temp_dir"
+            release_lock
             return 1
         fi
     else
@@ -187,6 +322,8 @@ install_version(){
             cp "$source" "$temp_dir/$temp_file"
         else
             echo "Erro: Arquivo não localizado!"
+            rm -rf "$temp_dir"
+            release_lock
             return 1
         fi
     fi
@@ -197,6 +334,7 @@ install_version(){
         echo "Erro: Falha ao extrair o arquivo!"
         rm -rf "$temp_dir"
         rm -rf "$DIR_NODE_VERSIONS/$version"
+        release_lock
         return 1
     fi
     
@@ -204,12 +342,18 @@ install_version(){
     
     echo "node versão '$version' instalada com sucesso!"
     echo "Execute: 'nodeman use $version' para utilizar essa versão!"
-        
+    
+    release_lock
+    return 0
 }
 
 # Remove uma versão
 remove_version(){
     local version current_version response
+    
+    if ! check_lock; then
+        return 1
+    fi
     
     version=${1:-}
     current_version=$(get_current_version)
@@ -217,12 +361,14 @@ remove_version(){
     if [ -z "$version" ]; then
         echo "Erro: Informe uma versão para remoção!"
         show_help
+        release_lock
         return 1
     fi
     
     if [ "$(version_exists "$version")" = "no" ]; then
         echo "Erro: Versão $version não encontrada!"
         list_versions
+        release_lock
         return 1
     fi
     
@@ -230,18 +376,21 @@ remove_version(){
     if [ "$current_version" = "$version" ]; then
         echo "A versão '$version' está em uso!"
         echo "Execute: 'nodeman disable' antes de tentar remover esta versão!"
+        release_lock
         return 1
     fi
     
     read -p "Deseja realmente remover a versão $version? [s/N]: " response < /dev/tty
     if [[ ! "$response" =~ ^[Ss]$ ]]; then
         echo "Remoção cancelada."
+        release_lock
         return 0
     fi
     
     read -p "Digite o número da versão para confirmar a remoção: " confirm_version < /dev/tty
     if [ "$confirm_version" != "$version" ]; then
         echo "A versão digitada não confere! Remoção cancelada."
+        release_lock
         return 0
     fi
     
@@ -250,6 +399,8 @@ remove_version(){
     
     echo "Versão $version removida com sucesso!"
     echo "Execute 'source ~/.bashrc' para aplicar as mudanças!"
+    
+    release_lock
     return 0    
 }
 
@@ -270,6 +421,24 @@ main(){
             ;;
         "disable")
             disable_version
+            ;;
+        "repo")
+            case ${2:-} in
+                "update")
+                    repo_update
+                    ;;
+                "list")
+                    repo_list
+                    ;;
+                *)
+                    if [ -z "$2" ]; then
+                        echo "Erro: Comando 'repo' requer subcomando!"
+                        show_help
+                        return 1
+                    fi
+                    repo_install "$2"
+                    ;;
+            esac
             ;;
         "help"|"")
             show_help
