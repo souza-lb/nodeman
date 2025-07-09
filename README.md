@@ -51,6 +51,41 @@ Versões Node disponíveis:
     22.16.0
 ```
 
+### 🔄 Gerenciar repositório de versões
+```bash
+# Atualizar lista de links
+nodeman repo update
+
+# Listar versões disponíveis no repositório
+nodeman repo list
+
+# Instalar versão específica do repositório
+nodeman repo [versão]
+```
+
+**Exemplos:**
+```bash
+# Atualizar lista de links
+nodeman repo update
+
+# Listar versões disponíveis (formato tabela)
+nodeman repo list
+
+# Instalar versão específica
+nodeman repo 22.16.0
+```
+
+Saída exemplo `repo list`:
+```
+Versões disponíveis no repositório:
+----------------------------------
+Versão       | Link
+----------------------------------
+22.16.0      | https://nodejs.org/dist/v22.16.0/node-v22.16.0-linux-x64.tar.xz
+20.12.1      | https://nodejs.org/dist/v20.12.1/node-v20.12.1-linux-x64.tar.xz
+...
+```
+
 ### ⬇️ Instalar uma versão
 ```bash
 nodeman install [URL/arquivo]
@@ -121,7 +156,8 @@ O nodeman organiza os arquivos em:
 │   ├── 20.12.1/
 │   ├── 22.14.0/
 │   └── current -> 20.12.1  # Link simbólico
-└── node_env           # Configuração de ambiente
+├── node_env           # Configuração de ambiente
+└── link-node.txt      # Lista de links do repositório
 ```
 
 ## 🔄 Pós-instalação
@@ -154,6 +190,12 @@ Para aplicar as mudanças no ambiente atual.
    ```
    Erro: Formato inválido! Use X.Y.Z
    ```
+   
+5. **Repositório não encontrado:**
+   ```
+   Repositório não encontrado!
+   Execute 'nodeman repo update' primeiro.
+   ```
 
 ---
 
@@ -161,20 +203,30 @@ Para aplicar as mudanças no ambiente atual.
 
 ```mermaid
 graph TD
-    A[Instalar versão] --> B{Usar versão?}
+    A[Instalar versão] -->|Pode ser via| B{Usar versão?}
     B -->|Sim| C[ nodeman use X.Y.Z ]
     B -->|Não| D[Listar versões]
     C --> E[source ~/.bashrc]
     D --> F[Escolher versão]
     F --> C
+    G[Atualizar repositório] --> H[nodeman repo update]
+    H --> I[nodeman repo list]
+    I --> J[Escolher versão]
+    J --> K[nodeman repo X.Y.Z]
+    K --> B
 ```
 
 Passos detalhados:
-1. **Instalar uma nova versão do Node**: `nodeman install [URL]`
+1. **Instalar uma nova versão do Node**:
+   - Via URL: `nodeman install [URL]`
+   - Via repositório: 
+        - Atualize a lista: `nodeman repo update`
+        - Liste as versões: `nodeman repo list`
+        - Instale: `nodeman repo [versão]`
 2. **Decidir se deseja usar a versão imediatamente**:
    - Se sim: ativar a versão com `nodeman use X.Y.Z`
-   - Se não: listar versões com `nodeman list`
-3. **Para listagem de versões**:
+   - Se não: listar versões instaladas com `nodeman list`
+3. **Para listagem de versões instaladas**:
    - Escolher uma versão específica
    - Ativar com `nodeman use X.Y.Z`
 4. **Sempre após ativar/desativar**: `source ~/.bashrc`
